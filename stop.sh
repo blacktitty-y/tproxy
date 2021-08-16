@@ -2,36 +2,32 @@
 
 set -x
 
+source ./config.sh
+
 echo "Removing iptables rules"
 
-ip rule del fwmark 1 table 100
-ip route del local default dev lo table 100
+ip -4 rule del fwmark $mark table $table
+ip -4 route del local default dev lo table $table
 
-# TCP
-iptables -t nat -F CLASH_LOCAL
-iptables -t nat -D OUTPUT -p tcp -m set --match-set localnetwork src -j CLASH_LOCAL
-iptables -t nat -D OUTPUT -p tcp -m addrtype --src-type LOCAL -j CLASH_LOCAL
-iptables -t nat -X CLASH_LOCAL
+iptables -t mangle -F TPROXY_OUTPUT
+iptables -t mangle -D OUTPUT -j TPROXY_OUTPUT
+iptables -t mangle -X TPROXY_OUTPUT
 
-iptables -t nat -F CLASH_EXTERNAL
-iptables -t nat -D PREROUTING -p tcp -m set --match-set localnetwork src -j CLASH_EXTERNAL
-iptables -t nat -D PREROUTING -p tcp -m addrtype --src-type LOCAL -j CLASH_EXTERNAL
-iptables -t nat -X CLASH_EXTERNAL
+iptables -t mangle -F TPROXY_PREROUTING
+iptables -t mangle -D PREROUTING -j TPROXY_PREROUTING
+iptables -t mangle -X TPROXY_PREROUTING
 
-# UDP
-iptables -t mangle -F CLASH_UDP
-iptables -t mangle -D PREROUTING -p udp -m set --match-set localnetwork src -j CLASH_UDP
-iptables -t mangle -D PREROUTING -p udp -m addrtype --src-type LOCAL -j CLASH_UDP
-iptables -t mangle -X CLASH_UDP
+iptables -t mangle -F TPROXY_RULE
+iptables -t mangle -X TPROXY_RULE
 
 # DNS
-iptables -t nat -F CLASH_DNS_LOCAL
-iptables -t nat -D OUTPUT -p udp -j CLASH_DNS_LOCAL
-iptables -t nat -X CLASH_DNS_LOCAL
+iptables -t nat -F TPROXY_DNS_LOCAL
+iptables -t nat -D OUTPUT -p udp -j TPROXY_DNS_LOCAL
+iptables -t nat -X TPROXY_DNS_LOCAL
 
-iptables -t nat -F CLASH_DNS_EXTERNAL
-iptables -t nat -D PREROUTING -p udp -j CLASH_DNS_EXTERNAL
-iptables -t nat -X CLASH_DNS_EXTERNAL
+iptables -t nat -F TPROXY_DNS_EXTERNAL
+iptables -t nat -D PREROUTING -p udp -j TPROXY_DNS_EXTERNAL
+iptables -t nat -X TPROXY_DNS_EXTERNAL
 
 ipset destroy localnetwork
 
